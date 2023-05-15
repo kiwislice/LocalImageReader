@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { 
+        background-color: black;
+    }
+
+    .image-container {
+      display: flex;
+      justify-content: center;
+      margin: 10px;
+    }
+
+    .image-container img {
+      max-width: 100%;
+      height: auto;
+    }
+    
+    .button-container {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      margin: 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    
+    .button {
+      display: block;
+      width: 90%;
+      overflow: hidden;
+      text-align: center;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f1f1f1;
+      text-decoration: none;
+      color: #333;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="button-gallery"></div>
+  <div id="image-gallery"></div>
+
+  <script>
+    // 按钮文本和URL的数组
+    var buttons = 
+        {{ .buttons }}
+      // ...更多按钮文本和URL
+    ;
+
+    // 图片URL数组
+    var imageUrls = 
+        {{ .imageUrls }}
+      // ...更多图片URL
+    ;
+
+    // 在页面加载完成后执行
+    window.onload = function() {
+      var galleryDiv = document.getElementById("button-gallery");
+  
+      // 创建按钮并添加到页面中
+      buttons.forEach(function(button) {
+        var buttonContainer = document.createElement("div");
+        buttonContainer.className = "button-container";
+
+        var link = document.createElement("a");
+        link.className = "button";
+        link.textContent = button.Label;
+        link.href = button.Url;
+
+        buttonContainer.appendChild(link);
+        galleryDiv.appendChild(buttonContainer);
+      });
+
+      var galleryDiv = document.getElementById("image-gallery");
+
+      // 创建图片容器并添加到页面中
+      imageUrls.forEach(function(url) {
+        var imageContainer = document.createElement("div");
+        imageContainer.className = "image-container";
+
+        var image = document.createElement("img");
+        image.src = url;
+
+        imageContainer.appendChild(image);
+        galleryDiv.appendChild(imageContainer);
+      });
+    };
+  </script>
+</body>
+</html>
