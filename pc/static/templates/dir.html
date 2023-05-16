@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <style>
-    body { 
-        background-color: black;
+    body {
+      background-color: black;
     }
 
     .image-container {
@@ -16,62 +17,74 @@
       max-width: 100%;
       height: auto;
     }
-    
+
     .button-container {
-      display: flex;
-      justify-content: center;
-      width: 100%;
-      margin: 10px;
+      display: inline-grid;
+      align-items: end;
+      height: 200px;
+      max-height: 200px;
+      width: 12.5%;
+      max-width: 200px;
+      margin: 3px;
       text-overflow: ellipsis;
       white-space: nowrap;
       overflow: hidden;
-    }
-    
-    .button {
-      display: block;
-      width: 90%;
-      overflow: hidden;
-      text-align: center;
-      padding: 10px;
+      background-size: cover;
       border: 1px solid #ccc;
       border-radius: 5px;
+    }
+
+    .button {
+      overflow: hidden;
+      text-align: center;
+      padding: 3px;
       background-color: #f1f1f1;
       text-decoration: none;
       color: #333;
       font-weight: bold;
     }
+
+    /* 手机上每个按键在一行中占据1/3宽度 */
+    @media (max-width: 576px) {
+      .button-container {
+        width: 30%;
+      }
+    }
   </style>
 </head>
+
 <body>
   <div id="button-gallery"></div>
   <div id="image-gallery"></div>
 
   <script>
     // 按钮文本和URL的数组
-    var buttons = 
-        {{ .buttons }}
-      // ...更多按钮文本和URL
+    var buttons =
+      {{ .buttons }}
+    // ...更多按钮文本和URL
     ;
 
     // 图片URL数组
-    var imageUrls = 
-        {{ .imageUrls }}
-      // ...更多图片URL
+    var imageUrls =
+      {{ .imageUrls }}
+    // ...更多图片URL
     ;
 
     // 在页面加载完成后执行
-    window.onload = function() {
+    window.onload = function () {
       var galleryDiv = document.getElementById("button-gallery");
-  
-      // 创建按钮并添加到页面中
-      buttons.forEach(function(button) {
-        var buttonContainer = document.createElement("div");
-        buttonContainer.className = "button-container";
 
-        var link = document.createElement("a");
+      // 创建按钮并添加到页面中
+      buttons.forEach(function (button) {
+        var buttonContainer = document.createElement("a");
+        buttonContainer.className = "button-container";
+        buttonContainer.style.backgroundImage = `url("/file/${button.ImageUrl}")`;
+        console.log('buttonContainer.style.backgroundImage',buttonContainer.style.backgroundImage)
+        buttonContainer.href = `/fs${button.Subpath}`;
+
+        var link = document.createElement("div");
         link.className = "button";
         link.textContent = button.Label;
-        link.href = button.Url;
 
         buttonContainer.appendChild(link);
         galleryDiv.appendChild(buttonContainer);
@@ -80,7 +93,7 @@
       var galleryDiv = document.getElementById("image-gallery");
 
       // 创建图片容器并添加到页面中
-      imageUrls.forEach(function(url) {
+      imageUrls.forEach(function (url) {
         var imageContainer = document.createElement("div");
         imageContainer.className = "image-container";
 
@@ -93,4 +106,5 @@
     };
   </script>
 </body>
+
 </html>

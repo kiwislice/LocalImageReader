@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type DirFileSystem struct {
@@ -25,7 +26,7 @@ func NewDirFileSystem(path string) (fs *DirFileSystem, err error) {
 func (x *DirFileSystem) Files() <-chan string {
 	ch := make(chan string, 10)
 	go func() {
-		err := filepath.Walk(x.DirPath, func(path string, info os.FileInfo, err error) error {
+		err := filepath.WalkDir(x.DirPath, func(path string, info os.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -59,11 +60,13 @@ func (x *DirFileSystem) Exists(subpath string) (suc bool, fi *FileInfo) {
 	return true, newFileInfo(fullpath, subpath, fileInfo.IsDir())
 }
 
+// 相對路徑轉完整路徑
 func (x *DirFileSystem) FullPath(subpath string) (fullpath string) {
 	fullpath = filepath.Join(x.DirPath, subpath)
 	return
 }
 
+// 取得資料夾內容，如果subpath不存在則空陣列，如果是檔案則只有檔案本身
 func (x *DirFileSystem) GetDirContents(subpath string) []*FileInfo {
 	exists, fi := x.Exists(subpath)
 	if !exists {
@@ -84,10 +87,69 @@ func (x *DirFileSystem) GetDirContents(subpath string) []*FileInfo {
 	return fis
 }
 
+// 取得資料夾中第一個predicate判斷為true的檔案，可能為nil
+func (x *DirFileSystem) Find(subpath string, predicate func(fullpath string) bool) *FileInfo {
+	exists, fi := x.Exists(subpath)
+	if !exists {
+		return nil
+	}
+	if !fi.IsDir {
+		return fi
+	}
+
+	fs, _ := ioutil.ReadDir(fi.Fullpath)
+	for _, f := range fs {
+		fullpath := filepath.Join(fi.Fullpath, f.Name())
+		subpath := filepath.Join(subpath, f.Name())
+		if predicate(fullpath) {
+			return newFileInfo(fullpath, subpath, f.IsDir())
+		}
+	}
+	return nil
+}
+
+// 取得資料夾中第一個predicate判斷為true的檔案，可能為nil
+func (x *DirFileSystem) FindRecursive(subpath string, predicate func(fullpath string) bool) *FileInfo {
+	exists, fi := x.Exists(subpath)
+	if !exists {
+		return nil
+	}
+	if !fi.IsDir {
+		return fi
+	}
+
+	waitQueue := make([]string, 0, 100) // 待處理資料夾
+	waitQueue = append(waitQueue, fi.Fullpath)
+
+	for len(waitQueue) > 0 {
+		dirFullpath := waitQueue[0]
+		waitQueue = waitQueue[1:]
+
+		fs, _ := os.ReadDir(dirFullpath)
+		for _, f := range fs {
+			subFullpath := filepath.Join(dirFullpath, f.Name())
+			if f.IsDir() {
+				waitQueue = append(waitQueue, subFullpath)
+				continue
+			}
+			if predicate(f.Name()) {
+				relPath, err := filepath.Rel(x.DirPath, subFullpath)
+				if err != nil {
+					err = fmt.Errorf("取得相對路徑失敗：資料夾=%s, 檔案=%s, err=%v", x.DirPath, subFullpath, err)
+					log.Println(err)
+				}
+				return newFileInfo(subFullpath, relPath, f.IsDir())
+			}
+		}
+	}
+	return nil
+}
+
+// 檔案資訊
 type FileInfo struct {
-	Fullpath string
-	Subpath  string
-	IsDir    bool
+	Fullpath string // 完整路徑
+	Subpath  string //相對路徑
+	IsDir    bool   //是否為資料夾
 }
 
 func newFileInfo(fullpath, subpath string, isDir bool) *FileInfo {
@@ -113,4 +175,18 @@ func checkPathDirExist(path string) (suc bool, err error) {
 		err = fmt.Errorf("%s 不是一個資料夾\n", path)
 		return false, err
 	}
+}
+
+// 圖檔的附檔名
+var imageExtentions = []string{".jpeg", ".jpg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".ico"}
+
+// 判斷路徑是否為圖檔
+func IsImage(path string) bool {
+	s := strings.ToLower(path)
+	for i := 0; i < len(imageExtentions); i++ {
+		if strings.HasSuffix(s, imageExtentions[i]) {
+			return true
+		}
+	}
+	return false
 }
