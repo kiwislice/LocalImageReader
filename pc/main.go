@@ -4,6 +4,7 @@ import (
 	"embed"
 	"flag"
 	"fmt"
+
 	"html/template"
 	"log"
 	"net/http"
@@ -127,12 +128,12 @@ type webData struct {
 
 func getWebData(dirFs *core.DirFileSystem, subpath string) []webData {
 	array := []webData{
-		{
-			IsDir:    true,
-			ImageUrl: "",
-			Label:    "回上一頁",
-			Subpath:  filepathAdjust(filepath.Dir(subpath)),
-		},
+		// {
+		// 	IsDir:    true,
+		// 	ImageUrl: "",
+		// 	Label:    "回上一頁",
+		// 	Subpath:  filepathAdjust(filepath.Dir(subpath)),
+		// },
 	}
 
 	for _, fi := range dirFs.GetDirContents(subpath) {

@@ -23,7 +23,8 @@
       align-items: end;
       height: 200px;
       max-height: 200px;
-      width: 12.5%;
+        /* 8col */
+      width: 12%;
       max-width: 200px;
       margin: 3px;
       text-overflow: ellipsis;
@@ -45,9 +46,10 @@
     }
 
     /* 手机上每个按键在一行中占据1/3宽度 */
-    @media (max-width: 576px) {
+    @media (max-width: 992px) {
       .button-container {
-        width: 30%;
+        /* 6col */
+        width: 15.7%;
       }
     }
   </style>
