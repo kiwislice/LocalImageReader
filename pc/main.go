@@ -44,6 +44,7 @@ var staticTemplatesFS embed.FS
 // 設定要從 command line 讀取的參數
 // 這邊所設定的會在 -h 或者輸入錯誤時出現提示哦！
 func init() {
+	fmt.Println(os.Args[0])
 	curDir, _ := filepath.Split(os.Args[0])
 
 	flag.StringVar(&dirPath, "dir", curDir, "資料夾路徑")
@@ -75,8 +76,8 @@ func main() {
 
 	r := gin.Default()
 
-	// LoadHtmlTemplateEmbed(r)
-	LoadHtmlTemplateGlobal(r)
+	LoadHtmlTemplateEmbed(r)
+	// LoadHtmlTemplateGlobal(r)
 
 	// 添加中間件以開放同源政策的限制
 	r.Use(CORS())
