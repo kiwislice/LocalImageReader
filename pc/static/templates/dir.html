@@ -80,7 +80,7 @@
       buttons.forEach(function (button) {
         var buttonContainer = document.createElement("a");
         buttonContainer.className = "button-container";
-        buttonContainer.style.backgroundImage = `url("/file/${button.ImageUrl}")`;
+        buttonContainer.style.backgroundImage = `url("/thumbnail/${button.ImageUrl}")`;
         console.log('buttonContainer.style.backgroundImage',buttonContainer.style.backgroundImage)
         buttonContainer.href = `/fs${button.Subpath}`;
 

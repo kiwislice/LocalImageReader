@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -57,7 +56,7 @@ func (x *DirFileSystem) Exists(subpath string) (suc bool, fi *FileInfo) {
 		log.Println(err)
 		return false, nil
 	}
-	return true, newFileInfo(fullpath, subpath, fileInfo.IsDir())
+	return true, newFileInfo(fullpath, subpath, fileInfo)
 }
 
 // 相對路徑轉完整路徑
@@ -76,12 +75,12 @@ func (x *DirFileSystem) GetDirContents(subpath string) []*FileInfo {
 		return []*FileInfo{fi}
 	}
 
-	fs, _ := ioutil.ReadDir(fi.Fullpath)
+	fs, _ := os.ReadDir(fi.Fullpath)
 	fis := make([]*FileInfo, 0, len(fs))
 	for _, f := range fs {
 		fullpath := filepath.Join(fi.Fullpath, f.Name())
 		subpath := filepath.Join(subpath, f.Name())
-		fi := newFileInfo(fullpath, subpath, f.IsDir())
+		fi := newFileInfo(fullpath, subpath, f)
 		fis = append(fis, fi)
 	}
 	return fis
@@ -97,12 +96,12 @@ func (x *DirFileSystem) Find(subpath string, predicate func(fullpath string) boo
 		return fi
 	}
 
-	fs, _ := ioutil.ReadDir(fi.Fullpath)
+	fs, _ := os.ReadDir(fi.Fullpath)
 	for _, f := range fs {
 		fullpath := filepath.Join(fi.Fullpath, f.Name())
 		subpath := filepath.Join(subpath, f.Name())
 		if predicate(fullpath) {
-			return newFileInfo(fullpath, subpath, f.IsDir())
+			return newFileInfo(fullpath, subpath, f)
 		}
 	}
 	return nil
@@ -138,25 +137,33 @@ func (x *DirFileSystem) FindRecursive(subpath string, predicate func(fullpath st
 					err = fmt.Errorf("取得相對路徑失敗：資料夾=%s, 檔案=%s, err=%v", x.DirPath, subFullpath, err)
 					log.Println(err)
 				}
-				return newFileInfo(subFullpath, relPath, f.IsDir())
+				return newFileInfo(subFullpath, relPath, f)
 			}
 		}
 	}
 	return nil
 }
 
+// fs的檔案資訊
+type fsFileInfo interface {
+	IsDir() bool  // 是否為資料夾
+	Name() string // 檔名
+}
+
 // 檔案資訊
 type FileInfo struct {
 	Fullpath string // 完整路徑
-	Subpath  string //相對路徑
-	IsDir    bool   //是否為資料夾
+	Subpath  string // 相對路徑
+	IsDir    bool   // 是否為資料夾
+	FileName string // 完整檔名
 }
 
-func newFileInfo(fullpath, subpath string, isDir bool) *FileInfo {
+func newFileInfo(fullpath, subpath string, f fsFileInfo) *FileInfo {
 	fi := new(FileInfo)
 	fi.Fullpath = filepath.ToSlash(fullpath)
 	fi.Subpath = filepath.ToSlash(subpath)
-	fi.IsDir = isDir
+	fi.IsDir = f.IsDir()
+	fi.FileName = f.Name()
 	return fi
 }
 
