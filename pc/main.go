@@ -5,8 +5,6 @@ import (
 	"embed"
 	"flag"
 	"fmt"
-	"image"
-	"io/fs"
 	"math/big"
 	"path"
 	"sort"
@@ -14,9 +12,6 @@ import (
 	"strings"
 
 	"html/template"
-	_ "image/gif"
-	"image/jpeg"
-	_ "image/png"
 	"kiwislice/localimagereader/core"
 	"log"
 	"net/http"
@@ -27,7 +22,6 @@ import (
 	"runtime"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/image/draw"
 )
 
 var (
@@ -117,7 +111,9 @@ func main() {
 	r.GET("/thumbnail/*subpath", func(c *gin.Context) {
 		subpath := c.Param("subpath")
 		fullpath := dirFs.FullPath(subpath)
-		ginRouteThumbnailHandler(c, fullpath)
+		thumbnailFullpath := dirFs.FindThumbnail(fullpath, subpath)
+		c.File(thumbnailFullpath)
+		// c.File(fullpath)
 	})
 
 	r.GET("/flutter/*subpath", func(c *gin.Context) {
@@ -285,112 +281,4 @@ func randomString() string {
 	n, _ := rand.Int(rand.Reader, big.NewInt(1000000))
 	s := n.String()
 	return s
-}
-
-// gin的/thumbnail處理
-func ginRouteThumbnailHandler(c *gin.Context, fullpath string) {
-	ifErr := func(err error) {
-		log.Fatal(err)
-		c.File(fullpath)
-	}
-
-	reader, err := os.Open(fullpath)
-	if err != nil {
-		err = fmt.Errorf("os.Open失敗: %v", err)
-		ifErr(err)
-		return
-	}
-	defer reader.Close()
-
-	img, _, err := image.Decode(reader)
-	if err != nil {
-		err = fmt.Errorf("image.Decode失敗: %v", err)
-		ifErr(err)
-		return
-	}
-
-	const thumbnailWidth int = 200
-
-	width := img.Bounds().Dx()
-	if width > thumbnailWidth {
-		newImg := resizeImage(img, thumbnailWidth)
-
-		// 不使用暫存檔
-		err = jpeg.Encode(c.Writer, newImg, nil)
-		if err != nil {
-			err = fmt.Errorf("jpeg.Encode失敗: %v", err)
-			ifErr(err)
-			return
-		}
-		c.Writer.Header().Set("Content-Type", "image/jpeg")
-
-		// 使用暫存檔
-		// tempFile, err := newThumbnailFile()
-		// if err != nil {
-		// 	err = fmt.Errorf("newThumbnailFile失敗: %v", err)
-		// 	ifErr(err)
-		// 	return
-		// }
-		// err = jpeg.Encode(tempFile.Writer, newImg, nil)
-		// if err != nil {
-		// 	err = fmt.Errorf("jpeg.Encode失敗: %v", err)
-		// 	ifErr(err)
-		// 	return
-		// }
-		// tempFile.Writer.Close()
-		// c.File(tempFile.FullPath)
-	} else {
-		c.File(fullpath)
-	}
-}
-
-// 圖片保持比例縮放到指定寬度
-func resizeImage(img image.Image, newWidth int) image.Image {
-	bounds := img.Bounds()
-	width := bounds.Dx()
-	height := bounds.Dy()
-
-	// 计算缩放比例
-	hwRatio := float64(height) / float64(width)
-	newHeight := int(hwRatio * float64(newWidth))
-
-	// 创建缩小后的图像画布
-	resizedImg := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
-
-	// 使用双线性插值算法进行图像缩小
-	draw.CatmullRom.Scale(resizedImg, resizedImg.Bounds(), img, bounds, draw.Over, nil)
-
-	return resizedImg
-}
-
-// 縮圖檔案
-type thumbnailFile struct {
-	Writer   *os.File
-	FileName string
-	FullPath string
-}
-
-// 新增暫存檔
-func newThumbnailFile() (f *thumbnailFile, err error) {
-	const dirPath = ".thumbnail"
-	err = os.MkdirAll(dirPath, fs.ModeDir|fs.ModeTemporary)
-	if err != nil {
-		err = fmt.Errorf("os.MkdirAll失敗: %v", err)
-		return
-	}
-	f = new(thumbnailFile)
-	f.Writer, err = os.CreateTemp(dirPath, "thumbnail_*.jpg")
-	if err != nil {
-		err = fmt.Errorf("os.CreateTemp失敗: %v", err)
-		return nil, err
-	}
-
-	info, err := f.Writer.Stat()
-	if err != nil {
-		err = fmt.Errorf("os.File.Stat失敗: %v", err)
-		return nil, err
-	}
-	f.FileName = info.Name()
-	f.FullPath = filepath.Join(dirPath, f.FileName)
-	return
 }

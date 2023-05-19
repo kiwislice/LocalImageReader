@@ -78,6 +78,10 @@ func (x *DirFileSystem) GetDirContents(subpath string) []*FileInfo {
 	fs, _ := os.ReadDir(fi.Fullpath)
 	fis := make([]*FileInfo, 0, len(fs))
 	for _, f := range fs {
+		if strings.HasSuffix(f.Name(), thumbnailDirName) {
+			continue
+		}
+
 		fullpath := filepath.Join(fi.Fullpath, f.Name())
 		subpath := filepath.Join(subpath, f.Name())
 		fi := newFileInfo(fullpath, subpath, f)
