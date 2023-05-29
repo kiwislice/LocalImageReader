@@ -17,10 +17,15 @@ import (
 const thumbnailDirName = ".thumbnail" // 縮圖資料夾名稱
 const thumbnailWidth int = 200        // 縮圖寬度
 
+// 取得縮圖完整路徑
+func (x *DirFileSystem) ThumbnailPath(subpath string) string {
+	return filepath.Join(x.DirPath, thumbnailDirName, subpath)
+}
+
 // 取得資料夾中第一個predicate判斷為true的檔案，可能為nil
 func (x *DirFileSystem) FindThumbnail(fullpath, subpath string) (thumbnailFullpath string) {
 	// 先判斷縮圖是否存在，存在直接return
-	thumbnailFullpath = filepath.Join(x.DirPath, thumbnailDirName, subpath)
+	thumbnailFullpath = x.ThumbnailPath(subpath)
 	_, err := os.Stat(thumbnailFullpath)
 	if err == nil {
 		return thumbnailFullpath
@@ -30,24 +35,32 @@ func (x *DirFileSystem) FindThumbnail(fullpath, subpath string) (thumbnailFullpa
 		log.Fatal(err)
 	}
 
-	img, err := readAsImage(fullpath)
+	thumbnailFullpath = toJpeg(fullpath, thumbnailFullpath, ifErr)
+	return thumbnailFullpath
+}
+
+// src=原圖完整路徑
+// dest=縮圖完整路徑
+// return=要顯示的檔案的完整路徑
+func toJpeg(src, dest string, ifErr func(error)) string {
+	img, err := readAsImage(src)
 	if err != nil {
 		err = fmt.Errorf("readAsImage失敗: %v", err)
 		ifErr(err)
-		return fullpath
+		return src
 	}
 
 	// 判斷寬度是否需要縮圖，不需要則return
 	width := img.Bounds().Dx()
 	if width <= thumbnailWidth {
-		return fullpath
+		return src
 	}
 
-	writer, err := createThumbnailFile(thumbnailFullpath)
+	writer, err := createThumbnailFile(dest)
 	if err != nil {
 		err = fmt.Errorf("createThumbnailFile失敗: %v", err)
 		ifErr(err)
-		return fullpath
+		return src
 	}
 	defer writer.Close()
 
@@ -56,9 +69,9 @@ func (x *DirFileSystem) FindThumbnail(fullpath, subpath string) (thumbnailFullpa
 	if err != nil {
 		err = fmt.Errorf("jpeg.Encode失敗: %v", err)
 		ifErr(err)
-		return fullpath
+		return src
 	}
-	return thumbnailFullpath
+	return dest
 }
 
 // 讀取Image物件

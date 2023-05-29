@@ -3,6 +3,10 @@
 
 <head>
   <style>
+    html {
+      /* scroll-behavior: smooth; */
+    }
+
     body {
       background-color: black;
     }
@@ -14,7 +18,7 @@
     }
 
     .image-container img {
-      max-width: 100%;
+      max-width: {{ .maxWidth }};
       height: auto;
     }
 
@@ -23,7 +27,7 @@
       align-items: end;
       height: 200px;
       max-height: 200px;
-        /* 8col */
+      /* 8col */
       width: 12%;
       max-width: 200px;
       margin: 3px;
@@ -81,7 +85,7 @@
         var buttonContainer = document.createElement("a");
         buttonContainer.className = "button-container";
         buttonContainer.style.backgroundImage = `url("/thumbnail/${button.ImageUrl}")`;
-        console.log('buttonContainer.style.backgroundImage',buttonContainer.style.backgroundImage)
+        console.log('buttonContainer.style.backgroundImage', buttonContainer.style.backgroundImage)
         buttonContainer.href = `/fs${button.Subpath}`;
 
         var link = document.createElement("div");
@@ -106,6 +110,57 @@
         galleryDiv.appendChild(imageContainer);
       });
     };
+
+
+    var targetScrollY = 0;
+    var scrollSpeed = {{ .scrollSpeed }};  // 滾動速度
+
+    var isScrolling = false;
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowLeft') {
+        window.history.back();
+      }
+      if (event.key === 'ArrowRight') {
+        window.history.forward();
+      }
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault();
+
+        if (!isScrolling) {
+          isScrolling = true;
+          targetScrollY = window.scrollY;
+          scrollPage(event.key);
+        }
+      }
+    });
+
+    document.addEventListener('keyup', function (event) {
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault();
+
+        isScrolling = false;
+      }
+    });
+
+    function scrollPage(direction) {
+      // 執行滾動操作
+      // 在這裡你可以使用你喜歡的滾動方法，如window.scrollTo()或Element.scrollBy()等
+      if(direction==='ArrowUp'){
+        targetScrollY -= scrollSpeed;
+      }else{
+        targetScrollY += scrollSpeed;
+      }
+      window.scroll(0, targetScrollY);
+
+      // 滾動速度和延遲速度
+      if (isScrolling) {
+        requestAnimationFrame(function() {
+          scrollPage(direction);
+        });
+      }
+    }
+
   </script>
 </body>
 

@@ -25,9 +25,12 @@ import (
 )
 
 var (
-	dirPath string
-	port    int
-	randStr string = randomString()
+	dirPath     string
+	port        int
+	randStr     string = randomString()
+	useWebp     bool
+	maxWidth    string
+	scrollSpeed int
 )
 
 // HTML靜態樣板FS
@@ -43,6 +46,9 @@ func init() {
 
 	flag.StringVar(&dirPath, "dir", curDir, "資料夾路徑")
 	flag.IntVar(&port, "port", 61091, "http port")
+	flag.BoolVar(&useWebp, "webp", false, "是否使用webp格式")
+	flag.StringVar(&maxWidth, "mw", "100%", "圖片最大寬度(EX:80%, 1000px)")
+	flag.IntVar(&scrollSpeed, "scrollSpeed", 30, "方向鍵滾動速度")
 
 	flag.Usage = usage
 }
@@ -70,8 +76,10 @@ func main() {
 
 	r := gin.Default()
 
-	LoadHtmlTemplateEmbed(r)
-	// LoadHtmlTemplateGlobal(r)
+	// 使用static資料夾的模板
+	// LoadHtmlTemplateEmbed(r)
+	// 使用放在執行檔隔壁的模板
+	LoadHtmlTemplateGlobal(r)
 
 	// 添加中間件以開放同源政策的限制
 	r.Use(CORS())
@@ -96,13 +104,16 @@ func main() {
 			if wd.IsDir {
 				buttons = append(buttons, wd)
 			} else {
-				imageUrls = append(imageUrls, fmt.Sprintf("/file/%s", wd.Subpath))
+				imageUrls = append(imageUrls, fmt.Sprintf("/webp/%s", wd.Subpath))
 			}
 		}
 
+		fmt.Println(maxWidth)
 		c.HTML(http.StatusOK, "dir.html", gin.H{
-			"buttons":   buttons,
-			"imageUrls": imageUrls,
+			"buttons":     buttons,
+			"imageUrls":   imageUrls,
+			"maxWidth":    maxWidth,
+			"scrollSpeed": scrollSpeed,
 		})
 	})
 
@@ -114,6 +125,17 @@ func main() {
 		thumbnailFullpath := dirFs.FindThumbnail(fullpath, subpath)
 		c.File(thumbnailFullpath)
 		// c.File(fullpath)
+	})
+
+	r.GET("/webp/*subpath", func(c *gin.Context) {
+		subpath := c.Param("subpath")
+		fullpath := dirFs.FullPath(subpath)
+		if useWebp {
+			webpFullpath := dirFs.FindWebp(fullpath, subpath)
+			c.File(webpFullpath)
+		} else {
+			c.File(fullpath)
+		}
 	})
 
 	r.GET("/flutter/*subpath", func(c *gin.Context) {

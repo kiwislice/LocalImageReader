@@ -175,15 +175,15 @@ func newFileInfo(fullpath, subpath string, f fsFileInfo) *FileInfo {
 func checkPathDirExist(path string) (suc bool, err error) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		err = fmt.Errorf("無法取得路徑 %s 的檔案資訊： %v\n", path, err)
+		err = fmt.Errorf("無法取得路徑 %s 的檔案資訊： %v", path, err)
 		return false, err
 	}
 
 	if fileInfo.IsDir() {
-		fmt.Printf("%s 是一個資料夾\n", path)
+		fmt.Printf("%s 是一個資料夾", path)
 		return true, err
 	} else {
-		err = fmt.Errorf("%s 不是一個資料夾\n", path)
+		err = fmt.Errorf("%s 不是一個資料夾", path)
 		return false, err
 	}
 }
