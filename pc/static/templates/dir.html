@@ -113,7 +113,8 @@
 
 
     var targetScrollY = 0;
-    var scrollSpeed = {{ .scrollSpeed }};  // 滾動速度
+    var scrollSpeed = 50;  // 滾動速度
+    var currentScrollSpeed = scrollSpeed;  // 滾動速度
 
     var isScrolling = false;
 
@@ -125,11 +126,14 @@
         window.history.forward();
       }
       if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        console.log(event.key);
         event.preventDefault();
 
         if (!isScrolling) {
           isScrolling = true;
           targetScrollY = window.scrollY;
+          currentScrollSpeed = scrollSpeed;
+          console.log(event.key,'targetScrollY',targetScrollY);
           scrollPage(event.key);
         }
       }
@@ -147,15 +151,17 @@
       // 執行滾動操作
       // 在這裡你可以使用你喜歡的滾動方法，如window.scrollTo()或Element.scrollBy()等
       if(direction==='ArrowUp'){
-        targetScrollY -= scrollSpeed;
+        targetScrollY -= currentScrollSpeed;
       }else{
-        targetScrollY += scrollSpeed;
+        targetScrollY += currentScrollSpeed;
       }
       window.scroll(0, targetScrollY);
 
       // 滾動速度和延遲速度
       if (isScrolling) {
         requestAnimationFrame(function() {
+          console.log('requestAnimationFrame','targetScrollY',targetScrollY);
+          currentScrollSpeed *= 1.02;
           scrollPage(direction);
         });
       }

@@ -2,21 +2,31 @@ package core
 
 import (
 	"embed"
+	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 var (
-	cwebpExePath string // cwebp.exe的完整路徑
+	cwebpExePath    string // cwebp.exe的完整路徑
+	inputCwebpFlags string // cwebp.exe的參數
 )
 
 // 圖檔轉webp
 //
 //go:embed static/cwebp.exe
 var cwebpFS embed.FS
+
+// 設定要從 command line 讀取的參數
+// 這邊所設定的會在 -h 或者輸入錯誤時出現提示哦！
+func init() {
+	flag.StringVar(&inputCwebpFlags, "cwebpflags", "", "執行cwebp.exe的參數")
+}
 
 // 取得webp完整路徑
 func (x *DirFileSystem) WebpPath(subpath string) string {
@@ -27,6 +37,10 @@ func (x *DirFileSystem) WebpPath(subpath string) string {
 
 // 取得webp的檔案，可能為nil
 func (x *DirFileSystem) FindWebp(fullpath, subpath string) (webpFullpath string) {
+	if !IsImage(subpath) {
+		return fullpath
+	}
+
 	// 先判斷webp是否存在，存在直接return
 	webpFullpath = x.WebpPath(subpath)
 	_, err := os.Stat(webpFullpath)
@@ -84,18 +98,28 @@ func toWebp(src, dest string, ifErr func(error)) string {
 		return dest
 	}
 
+	dirPath := filepath.Dir(dest)
+	os.MkdirAll(dirPath, fs.ModeDir)
+
 	_, err = os.Stat(cwebpExePath)
 	if err != nil {
 		fmt.Printf("toWebp cwebpexe不存在：%v\n", err)
 		createCwebpexe(cwebpExePath)
 	}
 
+	cwebpFlags := []string{"-q", "50", src, "-o", dest}
+	inputCwebpFlags = strings.TrimSpace(inputCwebpFlags)
+	if inputCwebpFlags != "" {
+		cwebpFlags = strings.Split(inputCwebpFlags, " ")
+		cwebpFlags = append(cwebpFlags, src, "-o", dest)
+	}
+
 	// 執行臨時exe檔案
-	cmd := exec.Command(cwebpExePath, "-q", "50", src, "-o", dest)
+	cmd := exec.Command(cwebpExePath, cwebpFlags...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Println("toWebp執行exe檔案時出錯：", err)
+		fmt.Println("toWebp執行exe檔案時出錯：", err, "flags=", cwebpFlags)
 		return src
 	}
 	return dest

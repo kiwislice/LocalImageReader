@@ -25,12 +25,12 @@ import (
 )
 
 var (
-	dirPath     string
-	port        int
-	randStr     string = randomString()
-	useWebp     bool
-	maxWidth    string
-	scrollSpeed int
+	dirPath       string
+	port          int
+	randStr       string = randomString()
+	useWebp       bool
+	maxWidth      string
+	outerTemplate bool
 )
 
 // HTML靜態樣板FS
@@ -48,7 +48,7 @@ func init() {
 	flag.IntVar(&port, "port", 61091, "http port")
 	flag.BoolVar(&useWebp, "webp", false, "是否使用webp格式")
 	flag.StringVar(&maxWidth, "mw", "100%", "圖片最大寬度(EX:80%, 1000px)")
-	flag.IntVar(&scrollSpeed, "scrollSpeed", 30, "方向鍵滾動速度")
+	flag.BoolVar(&outerTemplate, "outerTemplate", false, "是否使用外部模板")
 
 	flag.Usage = usage
 }
@@ -76,10 +76,13 @@ func main() {
 
 	r := gin.Default()
 
-	// 使用static資料夾的模板
-	// LoadHtmlTemplateEmbed(r)
-	// 使用放在執行檔隔壁的模板
-	LoadHtmlTemplateGlobal(r)
+	if outerTemplate {
+		// 使用放在執行檔隔壁的模板
+		LoadHtmlTemplateGlobal(r)
+	} else {
+		// 使用static資料夾的模板
+		LoadHtmlTemplateEmbed(r)
+	}
 
 	// 添加中間件以開放同源政策的限制
 	r.Use(CORS())
@@ -108,12 +111,10 @@ func main() {
 			}
 		}
 
-		fmt.Println(maxWidth)
 		c.HTML(http.StatusOK, "dir.html", gin.H{
-			"buttons":     buttons,
-			"imageUrls":   imageUrls,
-			"maxWidth":    maxWidth,
-			"scrollSpeed": scrollSpeed,
+			"buttons":   buttons,
+			"imageUrls": imageUrls,
+			"maxWidth":  maxWidth,
 		})
 	})
 
@@ -268,7 +269,7 @@ func CORS() gin.HandlerFunc {
 // 自訂CACHE中間件
 func CACHE() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fmt.Println("RequestURI=", c.Request.RequestURI)
+		// fmt.Println("RequestURI=", c.Request.RequestURI)
 		u, err := url.Parse(c.Request.RequestURI)
 		if err != nil {
 			fmt.Println("URL 解析失败:", err)
@@ -276,7 +277,7 @@ func CACHE() gin.HandlerFunc {
 		}
 		fn := path.Base(u.Path)
 		if core.IsImage(fn) {
-			fmt.Println("Cache=", c.Request.RequestURI)
+			// fmt.Println("Cache=", c.Request.RequestURI)
 			c.Writer.Header().Set("Cache-Control", "public, max-age=600")
 		}
 		c.Next()
