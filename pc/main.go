@@ -153,11 +153,12 @@ func main() {
 
 // 網頁用的JSON資料
 type webData struct {
-	IsDir    bool   // 是否為資料夾
-	ImageUrl string // 如果是檔案則為本體，資料夾則為示意圖
-	Label    string // 標題
-	Subpath  string // 檔案系統的相對路徑
-	FileName string // 完整檔名
+	IsDir       bool   // 是否為資料夾
+	ImageUrl    string // 如果是檔案則為本體，資料夾則為示意圖
+	Label       string // 標題
+	Subpath     string // 檔案系統的相對路徑
+	FileName    string // 完整檔名
+	SubDirCount int    // 子資料夾數量
 }
 
 func getWebData(dirFs *core.DirFileSystem, subpath string) []webData {
@@ -175,11 +176,19 @@ func getWebData(dirFs *core.DirFileSystem, subpath string) []webData {
 
 		if fi.IsDir {
 			b := webData{
-				IsDir:    true,
-				ImageUrl: "",
-				Label:    subpath,
-				Subpath:  subpath,
-				FileName: filaname,
+				IsDir:       true,
+				ImageUrl:    "",
+				Label:       subpath,
+				Subpath:     subpath,
+				FileName:    filaname,
+				SubDirCount: 0,
+			}
+
+			subFis := dirFs.GetDirContents(subpath)
+			for _, sfi := range subFis {
+				if sfi.IsDir {
+					b.SubDirCount++
+				}
 			}
 
 			img := dirFs.FindRecursive(subpath, core.IsImage)
@@ -189,11 +198,12 @@ func getWebData(dirFs *core.DirFileSystem, subpath string) []webData {
 			array = append(array, b)
 		} else {
 			array = append(array, webData{
-				IsDir:    false,
-				ImageUrl: filepathAdjust(fmt.Sprintf("/file/%s", subpath)) + "?" + randStr,
-				Label:    subpath,
-				Subpath:  subpath,
-				FileName: filaname,
+				IsDir:       false,
+				ImageUrl:    filepathAdjust(fmt.Sprintf("/file/%s", subpath)) + "?" + randStr,
+				Label:       subpath,
+				Subpath:     subpath,
+				FileName:    filaname,
+				SubDirCount: 0,
 			})
 		}
 	}

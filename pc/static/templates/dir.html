@@ -35,7 +35,7 @@
       white-space: nowrap;
       overflow: hidden;
       background-size: cover;
-      border: 1px solid #ccc;
+      border: 2px solid #ccc;
       border-radius: 5px;
     }
 
@@ -85,12 +85,15 @@
         var buttonContainer = document.createElement("a");
         buttonContainer.className = "button-container";
         buttonContainer.style.backgroundImage = `url("/thumbnail/${button.ImageUrl}")`;
-        console.log('buttonContainer.style.backgroundImage', buttonContainer.style.backgroundImage)
         buttonContainer.href = `/fs${button.Subpath}`;
+
+        if (button.SubDirCount > 0) {
+          buttonContainer.style.borderColor = "lawngreen";
+        }
 
         var link = document.createElement("div");
         link.className = "button";
-        link.textContent = button.Label;
+        link.textContent = button.FileName;
 
         buttonContainer.appendChild(link);
         galleryDiv.appendChild(buttonContainer);
