@@ -86,6 +86,7 @@
         buttonContainer.className = "button-container";
         buttonContainer.style.backgroundImage = `url("/thumbnail/${button.ImageUrl}")`;
         buttonContainer.href = `/fs${button.Subpath}`;
+        buttonContainer.title = button.FileName;
 
         if (button.SubDirCount > 0) {
           buttonContainer.style.borderColor = "lawngreen";

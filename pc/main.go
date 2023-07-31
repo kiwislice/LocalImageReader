@@ -209,31 +209,75 @@ func getWebData(dirFs *core.DirFileSystem, subpath string) []webData {
 	}
 
 	sort.SliceStable(array, func(i, j int) bool {
-		return aLessBNumberFirst(array[i], array[j])
+		return aLessB(array[i], array[j])
 	})
 
 	return array
 }
 
 // 純數字檔名優先
-func aLessBNumberFirst(a, b webData) bool {
+func aLessB(a, b webData) bool {
 	// 获取扩展名（包括点号）
 	aExt, bExt := filepath.Ext(a.FileName), filepath.Ext(b.FileName)
 	aName, bName := strings.TrimSuffix(a.FileName, aExt), strings.TrimSuffix(b.FileName, bExt)
 	aNum, aErr := strconv.Atoi(aName)
 	bNum, bErr := strconv.Atoi(bName)
 
-	if aErr != nil && bErr != nil {
-		return strings.Compare(aName, bName) < 0
-	}
+	// 純數字檔名優先
 	if ae, be := aErr != nil, bErr != nil; ae != be {
-		if ae {
-			return false
+		return be
+	} else if !ae && !be {
+		// 都數字則小的優先
+		return aNum < bNum
+	}
+
+	// 非純數字則照順序比較字元
+	aName, bName = strings.ToLower(aName), strings.ToLower(bName)
+	min := len(aName)
+	if len(bName) < min {
+		min = len(bName)
+	}
+
+	for i := 0; i < min; i++ {
+		if aName[i] == bName[i] {
+			continue
+		}
+
+		ac, bc := aName[i], bName[i]
+		aIsAlphaNum, bIsAlphaNum := isAlphaNum(ac), isAlphaNum(bc)
+		if aIsAlphaNum != bIsAlphaNum {
+			// 非字母數字優先
+			return bIsAlphaNum
+		}
+
+		aIsNum, bIsNum := isNum(ac), isNum(bc)
+		if aIsNum && bIsNum {
+			aNum, bNum := strToInt(aName, i), strToInt(bName, i)
+			return aNum < bNum
+		} else if aIsNum != bIsNum {
+			return bIsNum
 		} else {
-			return true
+			return ac < bc
 		}
 	}
-	return aNum < bNum
+	return strings.Compare(aName, bName) < 0
+}
+
+func strToInt(s string, startIndex int) int {
+	var sum int
+	for i := startIndex; i < len(s) && isNum(s[i]); i++ {
+		sum *= 10
+		sum += int(s[i] - '0')
+	}
+	return sum
+}
+
+func isAlphaNum(b byte) bool {
+	return ('0' <= b && b <= '9') || ('a' <= b && b <= 'z') || ('A' <= b && b <= 'Z')
+}
+
+func isNum(b byte) bool {
+	return ('0' <= b && b <= '9')
 }
 
 // 調整路徑中的斜線&點
