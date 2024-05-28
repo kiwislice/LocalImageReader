@@ -5,11 +5,10 @@ import (
 	"embed"
 	"flag"
 	"fmt"
+	"io"
 	"math/big"
 	"path"
 	"sort"
-	"strconv"
-	"strings"
 
 	"html/template"
 	"kiwislice/localimagereader/core"
@@ -22,6 +21,8 @@ import (
 	"runtime"
 
 	"github.com/gin-gonic/gin"
+
+	"facette.io/natsort"
 )
 
 var (
@@ -73,6 +74,17 @@ func main() {
 	}
 
 	fmt.Printf("開放資料夾: %v\n", dirPath)
+
+	// 创建或打开日志文件
+	logFile, err := os.Create("gin.log")
+	if err != nil {
+		log.Fatalf("Failed to create log file: %v", err)
+	}
+	defer logFile.Close()
+
+	// 将 Gin 的日志输出设置为文件和控制台
+	gin.DefaultWriter = io.MultiWriter(logFile, os.Stdout)
+	gin.DefaultErrorWriter = io.MultiWriter(logFile, os.Stderr)
 
 	r := gin.Default()
 
@@ -209,75 +221,10 @@ func getWebData(dirFs *core.DirFileSystem, subpath string) []webData {
 	}
 
 	sort.SliceStable(array, func(i, j int) bool {
-		return aLessB(array[i], array[j])
+		return natsort.Compare(array[i].FileName, array[j].FileName)
 	})
 
 	return array
-}
-
-// 純數字檔名優先
-func aLessB(a, b webData) bool {
-	// 获取扩展名（包括点号）
-	aExt, bExt := filepath.Ext(a.FileName), filepath.Ext(b.FileName)
-	aName, bName := strings.TrimSuffix(a.FileName, aExt), strings.TrimSuffix(b.FileName, bExt)
-	aNum, aErr := strconv.Atoi(aName)
-	bNum, bErr := strconv.Atoi(bName)
-
-	// 純數字檔名優先
-	if ae, be := aErr != nil, bErr != nil; ae != be {
-		return be
-	} else if !ae && !be {
-		// 都數字則小的優先
-		return aNum < bNum
-	}
-
-	// 非純數字則照順序比較字元
-	aName, bName = strings.ToLower(aName), strings.ToLower(bName)
-	min := len(aName)
-	if len(bName) < min {
-		min = len(bName)
-	}
-
-	for i := 0; i < min; i++ {
-		if aName[i] == bName[i] {
-			continue
-		}
-
-		ac, bc := aName[i], bName[i]
-		aIsAlphaNum, bIsAlphaNum := isAlphaNum(ac), isAlphaNum(bc)
-		if aIsAlphaNum != bIsAlphaNum {
-			// 非字母數字優先
-			return bIsAlphaNum
-		}
-
-		aIsNum, bIsNum := isNum(ac), isNum(bc)
-		if aIsNum && bIsNum {
-			aNum, bNum := strToInt(aName, i), strToInt(bName, i)
-			return aNum < bNum
-		} else if aIsNum != bIsNum {
-			return bIsNum
-		} else {
-			return ac < bc
-		}
-	}
-	return strings.Compare(aName, bName) < 0
-}
-
-func strToInt(s string, startIndex int) int {
-	var sum int
-	for i := startIndex; i < len(s) && isNum(s[i]); i++ {
-		sum *= 10
-		sum += int(s[i] - '0')
-	}
-	return sum
-}
-
-func isAlphaNum(b byte) bool {
-	return ('0' <= b && b <= '9') || ('a' <= b && b <= 'z') || ('A' <= b && b <= 'Z')
-}
-
-func isNum(b byte) bool {
-	return ('0' <= b && b <= '9')
 }
 
 // 調整路徑中的斜線&點
